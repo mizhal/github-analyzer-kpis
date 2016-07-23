@@ -58,7 +58,7 @@ module Github
                 last_month_projection: last_month_projection(kpis),
                 last_week_projection: last_week_projection(kpis)
               )
-
+              
               @custom_ranges.each do |range|
                 data = @catalog.GithubRawContributionCount.in_range(range.start, range.end)
 
@@ -95,17 +95,19 @@ module Github
         def speed_per_month data
           ## data -(map)-> KEY: month -(reduce)-> SUM
           ## I think this could be better done inside Mongo itself
-          data.lazy.map{|entry| [get_month(entry.date), entry]}
+          pairs = data.lazy.map{|entry| [get_month(entry.date), entry]}
             .group_by{|month, entry| month}
             .map{|month, entries| [month, entries.collect(&:count).sum]}
+          Hash[paris]
         end
 
         def speed_per_week data
           ## data -(map)-> KEY: week -(reduce)-> SUM
           ## I think this could be better done inside Mongo itself
-          data.lazy.map{|entry| [get_week(entry.date), entry]}
+          pairs = data.lazy.map{|entry| [get_week(entry.date), entry]}
             .group_by{|week, entry| entry}
             .map{|week, entries| [week, entries.collect(&:count).sum]}
+          Hash[pairs]
         end
 
         def current_week_speed(kpis)
@@ -120,7 +122,7 @@ module Github
             lweek = 53
           end
 
-          kpis[:speed_per_week][cweek]
+          kpis[:speed_per_week][lweek]
         end
 
         def current_month_speed(kpis)
@@ -130,23 +132,32 @@ module Github
         end
         
         def last_month_speed(kpis)
+          lmonth = DateTime.now.month - 1
+          if lmonth == 0
+            lmonth = 12
+          end
 
+          kpis[:speed_per_month][lmonth]
         end
 
         def current_week_projection(kpis)
-
+          s = current_week_speed(kpis)
+          s * 365
         end
 
         def current_month_projection(kpis)
-
+          s = current_month_speed(kpis)
+          s * 365
         end
 
         def last_month_projection(kpis)
-
+          s = last_month_speed(kpis)
+          s * 365
         end
 
         def last_week_projection(kpis)
-
+          s = last_week_speed(kpis)
+          s * 365
         end
 
         def get_month gh_date
